@@ -17,6 +17,8 @@
 
 from vllm.distributed.kv_transfer.kv_connector.factory import \
     KVConnectorFactory
+from vllm.distributed.ec_transfer.ec_connector.factory import \
+    ECConnectorFactory
 
 KVConnectorFactory.register_connector(
     "LLMDataDistCMgrConnector",
@@ -26,3 +28,8 @@ KVConnectorFactory.register_connector(
 KVConnectorFactory.register_connector(
     "MooncakeConnectorV1", "vllm_ascend.distributed.mooncake_connector",
     "MooncakeConnector")
+
+ECConnectorFactory.register_connector(
+    "ECMooncakeConnector",
+    "vllm_ascend.distributed.ec_mooncake_connector",
+    "ECMooncakeConnector")
