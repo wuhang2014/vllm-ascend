@@ -77,6 +77,7 @@ from vllm.v1.attention.backends.gdn_attn import GDNAttentionMetadataBuilder
 from vllm.v1.attention.backends.utils import (
     CommonAttentionMetadata, AttentionCGSupport,
     reorder_batch_to_split_decodes_and_prefills)
+from vllm.attention.backends.utils import PAD_SLOT_ID
 from vllm.v1.attention.backends.flash_attn import AttentionMetadata
 from vllm.v1.cudagraph_dispatcher import CudagraphDispatcher
 # yapf conflicts with isort for this block
@@ -1364,6 +1365,16 @@ class NPUModelRunner(LoRAModelRunnerMixin):
         # Fill unused with -1. Needed for reshape_and_cache
         self.query_start_loc[num_reqs + 1:].fill_(-1)
         self.seq_lens[num_reqs:].fill_(0)
+
+        # If cudagraph padding adds extra token slots (decode-only path),
+        # make sure the padded region is explicitly cleared so stale values
+        # from previous iterations cannot leak into the attention metadata.
+        if maybe_padded_num_tokens > total_num_scheduled_tokens:
+            pad_start = total_num_scheduled_tokens
+            pad_end = maybe_padded_num_tokens
+            self.input_ids[pad_start:pad_end].fill_(0)
+            self.positions[pad_start:pad_end].zero_()
+            self.slot_mapping[pad_start:pad_end].fill_(PAD_SLOT_ID)
 
         self.query_lens = torch.from_numpy(num_scheduled_tokens)
 
